@@ -19,6 +19,44 @@ import matplotlib.pyplot as plt
 from PIL import Image
 import numpy as np
 from sympy import Line, Point
+from math import degrees
+
+bad_words = ["ЁЁ:'ЕЁЦЭ",
+"Ле'г_;тла",
+"ЛЭ&”Ш@ЁНФГШЭ",
+"Ёд‚ма",
+"СЛ@МЫ'[",
+"ЛЭШП‘Л‚",
+"/Ё%Ё{:Ё?",
+"ему;",
+"Т…ъ{]г",
+")(:КИ!Ё›—",
+"]‚::",
+"“ледведш",
+"ОРЛЗНЬ|"]
+
+adjfs = ["Ядовитые",
+"голубые",
+"Большая",
+"Кустарниковая",
+"Гималайский",
+"`Полярные/",
+"Карликовый",
+"Японские",
+"Гривистый",
+"Гималайский",
+"Магелланов",
+"полярная",
+"Северный",
+"Полосатые",
+"Красный",
+"Гигантская",
+"Азиатские",
+"Давида",
+"Беннета",
+"Бурый",
+"Серый",
+"ночные"]
 
 def convert_img(img):
     def check_first_color(now_color):
@@ -67,7 +105,7 @@ def get_text_location(img, data):
     image_copy = img
     text_list = list()
     for i in range(len(data['text'])):
-        if len(data['text'][i]) < 4:
+        if len(data['text'][i]) < 4 or data['text'][i] in bad_words:
             continue
 
         # извлекаем ширину, высоту, верхнюю и левую позицию для обнаруженного слова
@@ -87,11 +125,35 @@ def get_text_location(img, data):
         center = (int(center[0][0]), int(center[0][1]))
         cv.circle(image_copy, center, 4, (0, 255, 0), -1)
         
-        text_list.append([data['text'][i], i, center, S])
+        text_list.append([data['text'][i], i, center, h])
     return image_copy, text_list
 
 def get_valliers(text_list):
-    pass
+    def check_angle(angle):
+        if angle < 5 or angle > 175 or (angle > 85 and angle < 100):
+            return True
+        else:
+            return False
+    text_noun = [x for x in text_list if not x[0] in adjfs]
+    text_adjf = [x for x in text_list if x[0] in adjfs]
+    axis = Line(Point(0, 0), Point(10, 0))
+    for adjf in text_adjf:
+        fl = 0
+        text_distance = []
+        for noun in text_noun:
+            text_distance.append([noun, float(Point(noun[2]).distance(Point(adjf[2]))), degrees(Line(Point(noun[2]), Point(adjf[2])).angle_between(axis))])
+        
+        #text_distance.sort(key= lambda x: x[2])
+        for text in text_distance:
+            if text[2] < 4 or text[2] > 175:
+                if text[1] < 235:
+                    print(adjf[0], '----', text[0][0], '---', text[1])
+                    fl = 1
+                    continue
+        if not fl:
+            text_distance.sort(key= lambda x: x[1])
+            if text_distance[0][1] < 500:
+                print(adjf[0], '----', text_distance[0][0][0], '---', text_distance[0][2])
 
 if __name__ == '__main__':
     #Скачали карту с сайта зоопарка (расчехлять request для этого не считаю нужным), но она большого размера и шакального качества
@@ -104,7 +166,7 @@ if __name__ == '__main__':
     image = cv.imread("kkkk.jpg")
 
     data = pytesseract.image_to_data(image, lang='rus', output_type=pytesseract.Output.DICT)
-    image_copy, text_list = get_text_location(img, data)
+    image_copy, text_list = get_text_location(image, data)
     valliers = get_valliers(text_list)
 
     cv.imwrite('lines.jpg', image_copy)
