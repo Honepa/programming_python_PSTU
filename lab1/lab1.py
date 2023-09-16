@@ -18,6 +18,7 @@ import cv2 as cv
 import matplotlib.pyplot as plt
 from PIL import Image
 import numpy as np
+from sympy import Line, Point
 
 def convert_img(img):
     def check_first_color(now_color):
@@ -62,7 +63,35 @@ def convert_img(img):
                 img[i][j] = np.array([255, 255, 255])
     return img
 
+def get_text_location(img, data):
+    image_copy = img
+    text_list = list()
+    for i in range(len(data['text'])):
+        if len(data['text'][i]) < 4:
+            continue
 
+        # извлекаем ширину, высоту, верхнюю и левую позицию для обнаруженного слова
+        w = data["width"][i]
+        h = data["height"][i]
+        l = data["left"][i]
+        t = data["top"][i]
+        # определяем все точки окружающей рамки
+        p1 = Point(l, t)
+        p2 = Point(l + w, t)
+        p3 = Point(l + w, t + h)
+        p4 = Point(l, t + h)
+        
+        S = p1.distance(p2) * p1.distance(p4)
+
+        center = Line(p1, p3).intersection(Line(p2, p4))
+        center = (int(center[0][0]), int(center[0][1]))
+        cv.circle(image_copy, center, 4, (0, 255, 0), -1)
+        
+        text_list.append([data['text'][i], i, center, S])
+    return image_copy, text_list
+
+def get_valliers(text_list):
+    pass
 
 if __name__ == '__main__':
     #Скачали карту с сайта зоопарка (расчехлять request для этого не считаю нужным), но она большого размера и шакального качества
@@ -75,27 +104,8 @@ if __name__ == '__main__':
     image = cv.imread("kkkk.jpg")
 
     data = pytesseract.image_to_data(image, lang='rus', output_type=pytesseract.Output.DICT)
-    image_copy = image
-    text_list = list()
-    for i in range(len(data['text'])):
-        if len(data['text'][i]) < 4:
-            continue
+    image_copy, text_list = get_text_location(img, data)
+    valliers = get_valliers(text_list)
 
-        text_list.append([data['text'][i], i])
-    # извлекаем ширину, высоту, верхнюю и левую позицию для обнаруженного слова
-        w = data["width"][i]
-        h = data["height"][i]
-        l = data["left"][i]
-        t = data["top"][i]
-        # определяем все точки окружающей рамки
-        p1 = (l, t)
-        p2 = (l + w, t)
-        p3 = (l + w, t + h)
-        p4 = (l, t + h)
-        # рисуем 4 линии (прямоугольник)
-        image_copy = cv.line(image_copy, p1, p2, color=(255, 0, 0), thickness=2)
-        image_copy = cv.line(image_copy, p2, p3, color=(255, 0, 0), thickness=2)
-        image_copy = cv.line(image_copy, p3, p4, color=(255, 0, 0), thickness=2)
-        image_copy = cv.line(image_copy, p4, p1, color=(255, 0, 0), thickness=2)
     cv.imwrite('lines.jpg', image_copy)
     print(text_list, file=open('aaaa.txt', 'w'))
