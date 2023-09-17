@@ -195,51 +195,16 @@ def convert_to_graph(distance):
     print(preparing_text, file = open("/tmp/aux.dot", 'w'))
     return preparing_text
 
-def get_neighbor(graph):
-    def parse_dot(graph):
-        data = graph
-        data = data.split('\t')
-        data = data[2:len(data)]
+def get_id(text_list, name):
+    return [x for x in text_list if x[0] == name][0][1]
 
-        graph = list()
-        for x in data:
-            zero = x.split(" -> ")[0]
-            zero = zero[1:len(zero)-1]
-            second = x.split(" -> ")[1].split('" [')[0]
-            second = second[1:]
-            graph.append([zero, second])
-        return graph
+def get_neighbors(dist, id_):
+    return [x for x in dist if x[0][1] == id_][0]
 
-    def get_matrix_df(data):
-        term = list()
-        for d in data:
-            term.append(d[0])
-            term.append(d[1])
-        term = list(set(term))
-
-        term.sort()
-        matrix = pd.DataFrame(columns=term) #, index =term)
-        bar = IncrementalBar('Fill df', max = len(data))
-        for x in data:
-            matrix[x[0]][x[1]] = 1
-            bar.next()
-            
-        bar.finish()
-        return matrix
-    denotat = "Манул"
-    data = parse_dot(graph)
-    data = get_matrix_df(data)
-
-    columns = data.columns.tolist()
-    columns = columns[1:]
-    denotat = [x for x in columns if x.split()[0] == denotat][0]
-    conn = data.iloc[columns.index(denotat)].tolist()
-    conn = conn[1:]
-    down = [columns[x] for x in range(len(conn)) if conn[x] == 1.0]
-    conn = data[denotat].tolist()
-    up = [columns[x] for x in range(len(conn)) if conn[x] == 1.0]
-    print(down)
-    print(up)
+def nice_print_neighbors(neightbors):
+    print(f"Соседи вольера {neightbors[0][0]}:")
+    for x in neightbors[1]:
+        print(" ", x[0][0])
 
 if __name__ == '__main__':
     #Скачали карту с сайта зоопарка (расчехлять request для этого не считаю нужным), но она большого размера и шакального качества
@@ -262,7 +227,10 @@ if __name__ == '__main__':
     graph = convert_to_graph(dist)
     print("[INFO] - Переделали всё в граф")
 
-    get_neighbor(graph)
+    manul_id = get_id(text_list, "Манул")
+    manul_neightbors = get_neighbors(dist, manul_id)
+    nice_print_neighbors(manul_neightbors)
 
     cv.imwrite('lines.jpg', image_copy)
     print(dist, file=open('aaaa.txt', 'w'))
+    print("[INFO] - Записали связи вольеров в файл 'aaaa.txt'")
