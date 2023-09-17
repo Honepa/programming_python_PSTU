@@ -16,10 +16,11 @@
 import pytesseract
 import cv2 as cv
 import matplotlib.pyplot as plt
-from PIL import Image
 import numpy as np
 from sympy import Line, Point
 from math import degrees
+import pandas as pd 
+from progress.bar import IncrementalBar
 
 bad_words = ["ЁЁ:'ЕЁЦЭ",
 "Ле'г_;тла",
@@ -56,7 +57,8 @@ adjfs = ["Ядовитые",
 "Беннета",
 "Бурый",
 "Серый",
-"ночные"]
+"ночные",
+"Малая"]
 
 def convert_img(img):
     def check_first_color(now_color):
@@ -129,11 +131,17 @@ def get_text_location(img, data):
     return image_copy, text_list
 
 def get_valliers(text_list):
-    def check_angle(angle):
-        if angle < 5 or angle > 175 or (angle > 85 and angle < 100):
-            return True
-        else:
-            return False
+    def get_middle_coor_segment(p1, p2):
+        x_middle = int((p1[0] + p2[0]) * 0.5)
+        y_middle = int((p1[1] + p2[1]) * 0.5)
+        return (x_middle, y_middle)
+
+    angle    = 2
+    distance = 1
+    text     = 0
+
+    valliers = []
+
     text_noun = [x for x in text_list if not x[0] in adjfs]
     text_adjf = [x for x in text_list if x[0] in adjfs]
     axis = Line(Point(0, 0), Point(10, 0))
@@ -141,19 +149,97 @@ def get_valliers(text_list):
         fl = 0
         text_distance = []
         for noun in text_noun:
-            text_distance.append([noun, float(Point(noun[2]).distance(Point(adjf[2]))), degrees(Line(Point(noun[2]), Point(adjf[2])).angle_between(axis))])
+            text_distance.append([noun, 
+                                float(Point(noun[2]).distance(Point(adjf[2]))), 
+                                degrees(Line(Point(noun[2]), Point(adjf[2])).angle_between(axis)),
+                                get_middle_coor_segment(Point(noun[2]), Point(adjf[2]))])
         
-        #text_distance.sort(key= lambda x: x[2])
         for text in text_distance:
-            if text[2] < 4 or text[2] > 175:
-                if text[1] < 235:
-                    print(adjf[0], '----', text[0][0], '---', text[1])
+            if text[angle] < 4 or text[angle] > 175:
+                if text[distance] < 235:
+                    #print(adjf[0], '----', text[0][0], '---', text[3])
+                    valliers.append([adjf[0] + " " + text[0][0], text[0][1], text[3]])
                     fl = 1
                     continue
         if not fl:
             text_distance.sort(key= lambda x: x[1])
             if text_distance[0][1] < 500:
-                print(adjf[0], '----', text_distance[0][0][0], '---', text_distance[0][2])
+                #print(adjf[0], '----', text_distance[0][0][0], '---', text_distance[0][3])
+                valliers.append([adjf[0] + " " + text_distance[0][0][0], text_distance[0][0][1], text_distance[0][3]])
+
+    id_found_noun = [x[1] for x in valliers]
+    not_found_noun = [x[:3] for x in text_noun if not x[1] in id_found_noun]
+    
+    return valliers + not_found_noun
+
+def get_neighboring_valliers(valliers):
+    distance = []
+    for vallier in valliers:
+        vallier_dist = list()
+        not_valliers = [x for x in valliers if not x[0] == vallier[0]]
+        for x in not_valliers:
+            vallier_dist.append([x, 
+                            float(Point(vallier[2]).distance(Point(x[2])))])
+        vallier_dist.sort(key=lambda x: x[1])
+        vallier_dist = vallier_dist[:4]
+        distance.append([vallier, vallier_dist])
+    return distance
+
+def convert_to_graph(distance):
+    preparing_text = str()
+    preparing_text += "digraph g {\n\trankdir=LR;\n"
+    for dist in distance:
+        for x in dist[1]:
+            preparing_text += "\t\"%s\" -> \"%s\" " % (dist[0][0] + " " + str(dist[0][1]), x[0][0] + " " + str(x[0][1]))
+    preparing_text += "}\n"
+    print(preparing_text, file = open("/tmp/aux.dot", 'w'))
+    return preparing_text
+
+def get_neighbor(graph):
+    def parse_dot(graph):
+        data = graph
+        data = data.split('\t')
+        data = data[2:len(data)]
+
+        graph = list()
+        for x in data:
+            zero = x.split(" -> ")[0]
+            zero = zero[1:len(zero)-1]
+            second = x.split(" -> ")[1].split('" [')[0]
+            second = second[1:]
+            graph.append([zero, second])
+        return graph
+
+    def get_matrix_df(data):
+        term = list()
+        for d in data:
+            term.append(d[0])
+            term.append(d[1])
+        term = list(set(term))
+
+        term.sort()
+        matrix = pd.DataFrame(columns=term) #, index =term)
+        bar = IncrementalBar('Fill df', max = len(data))
+        for x in data:
+            matrix[x[0]][x[1]] = 1
+            bar.next()
+            
+        bar.finish()
+        return matrix
+    denotat = "Манул"
+    data = parse_dot(graph)
+    data = get_matrix_df(data)
+
+    columns = data.columns.tolist()
+    columns = columns[1:]
+    denotat = [x for x in columns if x.split()[0] == denotat][0]
+    conn = data.iloc[columns.index(denotat)].tolist()
+    conn = conn[1:]
+    down = [columns[x] for x in range(len(conn)) if conn[x] == 1.0]
+    conn = data[denotat].tolist()
+    up = [columns[x] for x in range(len(conn)) if conn[x] == 1.0]
+    print(down)
+    print(up)
 
 if __name__ == '__main__':
     #Скачали карту с сайта зоопарка (расчехлять request для этого не считаю нужным), но она большого размера и шакального качества
@@ -164,10 +250,19 @@ if __name__ == '__main__':
     #Update: Пришлось немного подшамать в фотошопе.
     #cv.imwrite("kkkk.jpg", convert_img(cv.imread("zoomapnew1.jpg"))) 
     image = cv.imread("kkkk.jpg")
-
+    print("[INFO] - Загрузили рисунок московского зоопарка")
     data = pytesseract.image_to_data(image, lang='rus', output_type=pytesseract.Output.DICT)
+    print("[INFO] - Разобрали рисунок плана московского зоопарка")
     image_copy, text_list = get_text_location(image, data)
+    print("[INFO] - Разобрались с расположением слов в пространстве")
     valliers = get_valliers(text_list)
+    print("[INFO] - Получили список вальеров с их местоположением")
+    dist = get_neighboring_valliers(valliers)
+    print("[INFO] - Разобрались со связями вальеров (кривовастенько)")
+    graph = convert_to_graph(dist)
+    print("[INFO] - Переделали всё в граф")
+
+    get_neighbor(graph)
 
     cv.imwrite('lines.jpg', image_copy)
-    print(text_list, file=open('aaaa.txt', 'w'))
+    print(dist, file=open('aaaa.txt', 'w'))
