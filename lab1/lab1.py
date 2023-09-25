@@ -12,6 +12,20 @@
 с демонстрацией расположения вольера на карте зоопарка по запросу пользователя 
 (in: манул; out: текст + отметка на карте-схеме зоопарка
 
+План:
+Скачать картинку плана московского зоопарка. С помощью pytesseract найти все слова на изображении с их координатами.
+Запутать математику и объеденить сложные названия вальеров ("Магеланов" "Гусь" -> "Магеланов Гусь")
+Ещё сложнее запуть математику и составить граф со связями вальеров.
+Получить окружения вальера с Манулом.
+
+Список использованный источников:
+1. https://graphviz.org/doc/info/lang.html
+2. https://moscowzoo.ru/
+3. https://docs.sympy.org/latest/modules/geometry/points.html
+4. https://docs.sympy.org/latest/modules/geometry/lines.html
+5. https://pypi.org/project/pytesseract/
+6. https://github.com/tesseract-ocr/tessdata/tree/main
+
 '''
 import pytesseract
 import cv2 as cv
