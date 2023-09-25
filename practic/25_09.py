@@ -52,9 +52,28 @@ def fourth():
 	print(d2)
 	print()
 
+def fiveth():
+	print("Задание 5.")
+	print("Сгенерировать, используя модуль псевдослучайных чисел `random`, или ввести с клавиатуры два словаря, где ключом является строка, значением — целое число или число с плавающей точкой. Вывести в консоль. Найти пересечения множеств значений словарей. Создать новый словарь, содержащий только те пары ключ-значение, значения из которых входит в пересечение. Вывести в консоль.")
+	d1 = {str(randint(200,500)) : randint(0,10) for x in range(5) }
+	d2 = {str(randint(200,500)) : randint(0,10) for x in range(5) }
+
+	print("Первый словарь")
+	print(d1)
+	print("Второй словарь")
+	print(d2)
+
+	s = list(set(d1.values()) & set(d2.values()))
+
+	d3 = {x : d1[x] for x in d1.keys() if d1[x] in s}
+	d3.update({x : d2[x] for x in d2.keys() if d2[x] in s})
+
+	print("Новый словарь")
+	print(d3)
 
 if __name__ == '__main__':
 	first()
 	second()
 	third()
 	fourth()
+	fiveth()
