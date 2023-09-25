@@ -8,6 +8,7 @@ def first():
 	print(l)
 	print("Перевёрнутый:")
 	print(l[::-1])
+	print()
 
 def second():
 	print("Задание 2.")
@@ -26,6 +27,7 @@ def second():
 
 	print("Третий список")
 	print(l3)
+	print()
 
 def third():
 	print("Задание 3.")
@@ -37,8 +39,22 @@ def third():
 	l = list(set(l))
 	print("Список без дубликатов:")
 	print(l)
+	print()
+
+def fourth():
+	print("Задание 4.")
+	print("Сгенерировать, используя модуль псевдослучайных чисел `random`, или ввести с клавиатуры словарь, где ключом является строка, значением — целое число или число с плавающей точкой. Вывести в консоль. Для всех уникальных значений создать кортеж, где первым элементом будет значение, вторым — список связанных с ним ключей. Собрать эти кортежи в список, вывести его в консоль.")
+	d = {str(randint(200,500)) : randint(0,10) for x in range(5) }
+
+	print(d)
+
+	d2 = [(x, [y for y in d.keys() if d[y] == x]) for x in list(set(d.values()))]
+	print(d2)
+	print()
+
 
 if __name__ == '__main__':
 	first()
 	second()
 	third()
+	fourth()
