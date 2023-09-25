@@ -1,4 +1,4 @@
-from random import randint
+from random import randint, uniform
 
 def first():
 	print("Задание 1.")
@@ -33,12 +33,29 @@ def third():
 	print("Задание 3.")
 	print("Сгенерировать, используя модуль псевдослучайных чисел `random`, или ввести с клавиатуры список произвольных элементов (целые числа, числа с плавающей точкой, строки). Вывести в консоль. Убрать из него все дубликаты через приведение типов. Вывести в консоль.")
 	l = [randint(0, 10) for x in range(50)]
-	print("Список изначальный:")
+	print("Список целых чисел изначальный:")
 	print(l)
 
 	l = list(set(l))
 	print("Список без дубликатов:")
 	print(l)
+
+	l = [str(randint(0, 10)) for x in range(50)]
+	print("Список строк изначальный:")
+	print(l)
+
+	l = list(set(l))
+	print("Список без дубликатов:")
+	print(l)
+
+	l = [round(uniform(0, 10), 3) for x in range(50)]
+	print("Список чисел с плавающей точкой изначальный:")
+	print(l)
+
+	l = list(set(l))
+	print("Список без дубликатов:")
+	print(l)
+
 	print()
 
 def fourth():
@@ -72,8 +89,8 @@ def fiveth():
 	print(d3)
 
 if __name__ == '__main__':
-	first()
-	second()
+	#first()
+	#second()
 	third()
-	fourth()
-	fiveth()
+	#fourth()
+	#fiveth()
